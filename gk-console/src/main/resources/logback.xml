@@ -1,0 +1,39 @@
+<configuration>
+
+    <property name="log.dir" value="/gykl/logs"/>
+    <property name="projectname" value="gkconsole"/>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <!-- encoders are assigned the type
+             ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread]  %logger{0} - %msg%n</pattern>
+        </encoder>
+    </appender>
+    
+	<appender name="OperationRollingFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${log.dir}/${projectname}-ss_micro_app_${projectname}_lt_all.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${log.dir}/logs/${projectname}-ss_micro_app_${projectname}_lt_all-%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder charset="GBK">
+            <pattern>%d [%thread] %-5p [%c] [%F:%L] - %msg%n</pattern>
+        </encoder>
+    </appender>
+    
+    <appender name="OperationRollingFileASYNC" class="ch.qos.logback.classic.AsyncAppender">
+			<discardingThreshold>0</discardingThreshold>
+			<queueSize>2048</queueSize>
+			<appender-ref ref="OperationRollingFile" />
+	</appender>
+	
+	<logger name="OperationLog" level="INFO">
+		<appender-ref ref="OperationRollingFileASYNC"/>
+	</logger>
+	
+    <root level="info">
+        <appender-ref ref="STDOUT" />
+        <appender-ref ref="OperationRollingFileASYNC" />
+    </root>
+</configuration>
