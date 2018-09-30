@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -231,12 +232,17 @@ public class SyncOrderServiceImpl implements SyncOrderService {
                 }
                 log.info("gyOrderSync round-item:{}-{} stage2 gy U warehouse :{}...",round, i, GyBaseResp.isSuccecd(gyDeliveryUpdateResp));
                 // 可能会拆包，一般不会拆包，招行一物一单
+
                 for (KlOrderConfirmPkg pkg:packageList) {
                     // step 3 考拉下单支付
                     KlOrderPayResp klOrderPayResp = klApiService.bookpayorder(po, pkg);
                     log.info("gyOrderSync round-item:{}-{} stage3 kl pay:{}...",round, i, KlBaseResp.isSuccecd(klOrderPayResp));
 
                     if(KlBaseResp.isSuccecd(klOrderPayResp)){
+                        // 支付成功删除 orderErroPo
+                        if (null == orderErroPo && orderErroPo.getOrderId() != null){
+                            this.delOrderErrorTryCatch(po.getCode());
+                        }
                         //orderPo.setKlOrderPay(true);
                         //orderPo.setKlOrderId(klOrderPayResp.getGorder().getId());
                         //orderPo.setKlOrderStatus(klOrderPayResp.getGorder().getGorderStatus());
@@ -386,7 +392,7 @@ public class SyncOrderServiceImpl implements SyncOrderService {
                     }
                     if(!GyBaseResp.isSuccecd(gyDeliveryUpdateResp)){
                         if (null != orderPo){
-                            orderPo.setGyEpressStatus(1);
+                            orderPo.setGyEpressStatus(-1);
                             orderPo.setUpdateTime(new Date());
                         }
                         if(null == orderErroPo){
@@ -398,8 +404,12 @@ public class SyncOrderServiceImpl implements SyncOrderService {
                         orderErroPo.setGySyncExpressError("管易同步物流失败-"+gyDeliveryUpdateResp.getErrorDesc() + ". subError::" +gyDeliveryUpdateResp.getSubErrorDesc()
                                 + ". code::" +po.getCode()+ ". companyName::" +klOrderStatusResult.getDeliverName()+ ". no::" +klOrderStatusResult.getDeliverNo());
                     } else {
+                        // 物流成功删除 orderErroPo
+                        if (null == orderErroPo && orderErroPo.getOrderId() != null){
+                            this.delOrderErrorTryCatch(po.getCode());
+                        }
                         if (null != orderPo && orderPo.getGyEpressStatus() != 1){
-                            orderPo.setGyEpressStatus(-1);
+                            orderPo.setGyEpressStatus(1);
                         }
                     }
 
@@ -460,12 +470,19 @@ public class SyncOrderServiceImpl implements SyncOrderService {
                 // 废弃发货单
                 // step 2.废弃发货单 取消订单
                 OrderErrorPo orderErroPo = this.findOrderErroTryCatch(po.getCode());
-
+                OrderPo orderPo = this.findOrderPoTryCatch(po.getCode());
+                if(orderPo != null && orderPo.getKlCancelStatus() != 0){
+                    continue;
+                }
                 KlBaseResp rs = klApiService.cancelOrder(po.getCode());
                 log.info("gyklOrderCancelSync round-item:{}-{} stage1 kl canceled:{}...",round, i, KlBaseResp.isSuccecd(rs));
-                OrderPo orderPo = this.findOrderPoTryCatch(po.getCode());
+
                 if (null != orderPo) {
                     if (KlBaseResp.isSuccecd(rs)) {
+                        // 取消成功删除 orderErroPo
+                        if (null == orderErroPo && orderErroPo.getOrderId() != null){
+                            this.delOrderErrorTryCatch(po.getCode());
+                        }
                         orderPo.setKlCancelStatus(1);
                         orderPo.setKlOrderStatus(8);
                     } else {
@@ -486,6 +503,10 @@ public class SyncOrderServiceImpl implements SyncOrderService {
                     orderErroPo.setUpdateTime(new Date());
                     this.saveOrderErrorTryCatch(orderErroPo);
                 }
+            }else {
+                /*List<GyDeliverysPo> normalDys = new ArrayList<>();
+                normalDys.add(po);
+                this.gyklOrderExpressSyncHandler(normalDys, round);*/
             }
             log.info("gyklOrderCancelSync round-item:{}-{} end...",round, i);
             i++;
@@ -529,6 +550,13 @@ public class SyncOrderServiceImpl implements SyncOrderService {
         return null;
     }
 
+    private void delOrderErrorTryCatch(String orderId){
+        try {
+            orderErroDao.delete(orderId);
+        }catch (Exception e){
+            log.info("gyOrderSync order localSave error", e);
+        }
+    }
 
 
 

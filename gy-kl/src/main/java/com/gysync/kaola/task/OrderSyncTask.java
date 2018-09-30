@@ -53,6 +53,31 @@ public class OrderSyncTask extends BaseTask {
     }
 
     /**
+     * 修复支付失败
+     */
+    @Scheduled(initialDelay = 10 * 60 * 1000,fixedRate = 60 * 60 * 1000)
+    public void gyklOrderPayErrorSync() {
+        try {
+            if(jobEnable){
+                isrunning = true;
+                String warehouseCode = ConfigInfo.GY_KLWAREHOUSECODE;
+                Map<String, Object> map = new HashMap<String, Object>();
+                map.put("warehouse_code", warehouseCode); //须制定仓库
+                map.put("sync_status", "-1"); // -1 失败 0 未同步 1 成功
+                map.put("del", "0");
+                syncOrderService.gyklOrderSync(map);
+                log.info("gyklOrderPayErrorSync task:" + DateUtil.dateToString(new Date()));
+            }else{
+                log.info("gyklOrderPayErrorSync !!!!! task:" + DateUtil.dateToString(new Date()));
+            }
+        }catch (Exception e){
+            isrunning = false;
+            log.error("gyklOrderPayErrorSync", e);
+        }
+        isrunning = false;
+    }
+
+    /**
      * 抽取管易同步成功的发货单，并且发货单未打印，同步考拉发货状态
      */
     //@Scheduled(cron = "0 0/10 * * * ?")
@@ -98,7 +123,7 @@ public class OrderSyncTask extends BaseTask {
                 map.put("del", "1"); //0:是否同时返回已作废的单据 1:返回
                 Calendar calendar = Calendar.getInstance();
                 calendar.setTime(new Date());
-                calendar.add(Calendar.DATE, -1);
+                calendar.add(Calendar.DATE, -10);
                 map.put("start_create", DateUtil.dateToString(calendar.getTime())); //0:创建时间开始 于当前时间2天前，用于过滤重复已作废单据（待定）
                 syncOrderService.gyklOrderCancel(map);
                 log.info("gyklOrderExpressSync task:" + DateUtil.dateToString(new Date()));

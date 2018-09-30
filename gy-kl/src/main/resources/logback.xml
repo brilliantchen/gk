@@ -1,7 +1,7 @@
 <configuration>
 
   <property name="log.dir" value="/gykl/logs"/>
-  <property name="projectname" value="wei_guan"/>
+  <property name="projectname" value="gykl"/>
 
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
@@ -10,10 +10,10 @@
   </appender>
 
   <appender name="OperationRollingFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <file>${log.dir}/${projectname}-ss_micro_app_${projectname}_lt_all.log</file>
+    <file>${log.dir}/${projectname}.log</file>
     <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
       <fileNamePattern>
-        ${log.dir}/logs/${projectname}-ss_micro_app_${projectname}_lt_all-%d{yyyy-MM-dd}.log
+        ${log.dir}/logs/${projectname}-%d{yyyy-MM-dd}.log
       </fileNamePattern>
       <maxHistory>30</maxHistory>
     </rollingPolicy>
