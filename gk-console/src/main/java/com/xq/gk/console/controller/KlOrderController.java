@@ -5,6 +5,7 @@ import com.xq.gk.console.entity.ResultBase;
 import com.xq.gk.console.entity.gy.resp.GyBaseResp;
 import com.xq.gk.console.entity.gy.resp.GyDeliverysPo;
 import com.xq.gk.console.entity.gy.resp.GyDeliverysResp;
+import com.xq.gk.console.entity.kl.resp.KlBaseResp;
 import com.xq.gk.console.entity.kl.resp.KlOrderConfirmResp;
 import com.xq.gk.console.entity.kl.resp.KlOrderStatusQueryResp;
 import com.xq.gk.console.service.GyOrderUtilService;
@@ -29,8 +30,7 @@ public class KlOrderController {
     private GyOrderUtilService gyOrderUtilService;
 
     /**
-     * 考拉订单-查询--管易不同步
-     * @return
+     * 考拉订单-查询页面
      */
     @RequestMapping(value = "/kl/order/page", method = RequestMethod.GET)
     public ModelAndView klOrderPage() {
@@ -65,30 +65,53 @@ public class KlOrderController {
     }
 
     /**
+     * 考拉订单-查询--管易不同步
+     * @param sdoId 发货单号
+     * @return
+     */
+    @RequestMapping(value = "/kl/order/sdo/{sdoId}", method = RequestMethod.GET)
+    @ResponseBody
+    public ResultBase<KlOrderStatusQueryResp> klOrderQueryBySdo(@PathVariable String sdoId) {
+        try {
+            /*GyDeliverysResp gGyDeliverysResp = gyOrderUtilService.getGyDeliverByCode(sdoId);
+            if(!GyBaseResp.isSuccecd(gGyDeliverysResp) || CollectionUtils.isEmpty(gGyDeliverysResp.getDeliverys())){
+                return ResultBase.Fail(-2, "订单未在erp系统中", new ArrayList<KlOrderStatusQueryResp>());
+            }*/
+            KlOrderStatusQueryResp rs = klApiService.queryOrderStatus(sdoId);
+            return  ResultBase.Success(rs);
+        }catch (Exception e){
+            return ResultBase.Fail(-1, "系统错误", null);
+        }
+    }
+
+    /**
      * 考拉订单-确认--管易不同步
      */
     @RequestMapping(value = "/kl/order/confirm", method = RequestMethod.GET)
-    public ResultBase<String> klOrderConfirm(@RequestParam String code) {
+    public ResultBase<KlOrderConfirmResp> klOrderConfirm(@RequestParam String code) {
         try {
             GyDeliverysResp gGyDeliverysResp = gyOrderUtilService.getGyDeliverByCode(code);
             if(!GyBaseResp.isSuccecd(gGyDeliverysResp) && !CollectionUtils.isEmpty(gGyDeliverysResp.getDeliverys())){
-                return ResultBase.Fail(1001, "管易发货单不存在", JSON.toJSONString(gGyDeliverysResp));
+                return ResultBase.Fail(1001, "管易发货单不存在", null);
             }
             GyDeliverysPo po = gGyDeliverysResp.getDeliverys().get(0);
 
-            /*po.setReceiver_name("曾千山");
-            po.setVip_real_name("曾千山");
-            po.setVip_id_card("510421198302065863"); //一般贸易商品可不传
-            po.getDetails().get(0).setQty(1);
-            po.getDetails().get(0).setItem_code("49255695");
-            po.getDetails().get(0).setSku_code("49255695-ecc4090b639c47f89b453980923afb8e");
-            po.getDetails().get(0).setAmount(200d);*/
-
             KlOrderConfirmResp orderConformResp = klApiService.orderConfirm(po);
-            return ResultBase.Success(JSON.toJSONString(orderConformResp));
+            return ResultBase.Success(orderConformResp);
         }catch (Exception e){
-            return ResultBase.Fail(-1, "系统错误", e.getMessage());
+            return ResultBase.Fail(-1, "系统错误", null);
         }
+    }
+
+    /**
+     * 考拉订单-取消页面
+     * @return
+     */
+    @RequestMapping(value = "/kl/order/cancel/page", method = RequestMethod.GET)
+    public ModelAndView klOrderCancelPage() {
+        ModelAndView modelAndView = new ModelAndView("/kl/order_cancel_page");
+        //modelAndView.addObject("typeMap", SupplierType.getAllSupplierType());
+        return modelAndView;
     }
 
     /**
@@ -96,17 +119,17 @@ public class KlOrderController {
      * @param code
      * @return
      */
-    @RequestMapping(value = "/kl/order/cancel", method = RequestMethod.GET)
-    public ResultBase<String> klOrderCancel(@RequestParam String code) {
+    @RequestMapping(value = "/kl/order/{thirdId}/cancel", method = RequestMethod.GET)
+    public ResultBase<KlBaseResp> klOrderCancel(@PathVariable String thirdId) {
         try {
-            GyDeliverysResp gGyDeliverysResp = gyOrderUtilService.getGyDeliverByCode(code);
+            /*GyDeliverysResp gGyDeliverysResp = gyOrderUtilService.getGyDeliverByCode(code);
             if(!GyBaseResp.isSuccecd(gGyDeliverysResp) && !CollectionUtils.isEmpty(gGyDeliverysResp.getDeliverys())){
                 return ResultBase.Fail(-2, "管易发货单不存在", JSON.toJSONString(gGyDeliverysResp));
-            }
-            //syncOrderService.gyklOrderCancelSyncHandler(gGyDeliverysResp.getDeliverys(), -1);
-            return ResultBase.Success(JSON.toJSONString(gGyDeliverysResp.getDeliverys().get(0)));
+            }*/
+            KlBaseResp rs = klApiService.cancelOrder(thirdId);
+            return ResultBase.Success(rs);
         }catch (Exception e){
-            return ResultBase.Fail(-1, "系统错误", e.getMessage());
+            return ResultBase.Fail(-1, "系统错误", new KlBaseResp());
         }
     }
 

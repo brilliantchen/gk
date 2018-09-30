@@ -119,8 +119,11 @@
     var klQuery = function (id) {
         //alertify.confirm("确认？", function () {
             clear();
+            if(id == ''){
+                return;
+            }
             $.ajax({
-                url: '/gk//kl/order/' + id,
+                url: '/gk/kl/order/' + id,
                 method: 'GET',
                 dataType: 'json',
                 success: function (rs) {

@@ -57,7 +57,18 @@
             </a>
             <ul class="treeview-menu">
                 <li><a href="/gk/kl/order/page"><i class="fa fa-circle-o"></i>订单查看</a></li>
-                <li><a href="#"><i class="fa fa-circle-o"></i>订单取消</a></li>
+                <li><a href="/gk/kl/order/cancel/page"><i class="fa fa-circle-o"></i>订单取消</a></li>
+            </ul>
+        </li>
+        <li class="treeview">
+            <a href="#">
+                <i class="fa fa-edit"></i> <span>考拉商品</span>
+                <span class="pull-right-container">
+              <i class="fa fa-angle-left pull-right"></i>
+            </span>
+            </a>
+            <ul class="treeview-menu">
+                <li><a href="#"><i class="fa fa-circle-o"></i>商品详情</a></li>
             </ul>
         </li>
 
