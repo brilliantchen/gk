@@ -186,6 +186,13 @@ public class SyncOrderServiceImpl implements SyncOrderService {
                 orderInit = false;
             }
             // this.saveOrderPoTryCatch(orderPo); // loacal 1.保存订单-管易结果
+            // 支付失败同步失败，
+            /*if(po.getSync_status() == -1){
+
+            } else {
+
+            }*/
+
             // step 2.考拉订单确认接口，确定仓库
             boolean priceChange = gyOrderUtilService.changeChannelPriceToKl(po); // 修改管易商品价格为考拉价格
             KlOrderConfirmResp localValidate =  GyDeliverysPo.isValidated(po);
@@ -220,19 +227,22 @@ public class SyncOrderServiceImpl implements SyncOrderService {
                 klVerifyLevel = orderConformResp.getOrderForm().getNeedVerifyLevel();
 
                 // step 2.修改管易发货单状态为转入外仓
-                GyDeliveryUpdateResp gyDeliveryUpdateResp = gyOrderUtilService.updateDeliverysToOtherWareHouse(po.getCode());
-                if(!GyBaseResp.isSuccecd(gyDeliveryUpdateResp)){
-                    if (null == orderErroPo){
-                        orderErroPo = new OrderErrorPo();
-                        orderErroPo.setOrderId(po.getCode());
-                        orderErroPo.setThirdPartyId(po.getPlatform_code());
-                        orderErroPo.setCreateTime(DateUtil.stringToDate(po.getCreate_date(), DateUtil.dateTimeFormat));
+                if(po.getDelivery_statusInfo().getWms_order() != 1){
+                    // 未转入外仓
+                    GyDeliveryUpdateResp gyDeliveryUpdateResp = gyOrderUtilService.updateDeliverysToOtherWareHouse(po.getCode());
+                    if(!GyBaseResp.isSuccecd(gyDeliveryUpdateResp)){
+                        if (null == orderErroPo){
+                            orderErroPo = new OrderErrorPo();
+                            orderErroPo.setOrderId(po.getCode());
+                            orderErroPo.setThirdPartyId(po.getPlatform_code());
+                            orderErroPo.setCreateTime(DateUtil.stringToDate(po.getCreate_date(), DateUtil.dateTimeFormat));
+                        }
+                        orderErroPo.setGyWhousError("管易转入外仓失败-"+gyDeliveryUpdateResp.getErrorDesc() + ". subError::" +gyDeliveryUpdateResp.getSubErrorDesc());
                     }
-                    orderErroPo.setGyWhousError("管易转入外仓失败-"+gyDeliveryUpdateResp.getErrorDesc() + ". subError::" +gyDeliveryUpdateResp.getSubErrorDesc());
+                    log.info("gyOrderSync round-item:{}-{} stage2 gy U warehouse :{}...",round, i, GyBaseResp.isSuccecd(gyDeliveryUpdateResp));
                 }
-                log.info("gyOrderSync round-item:{}-{} stage2 gy U warehouse :{}...",round, i, GyBaseResp.isSuccecd(gyDeliveryUpdateResp));
-                // 可能会拆包，一般不会拆包，招行一物一单
 
+                // 可能会拆包，一般不会拆包，招行一物一单
                 for (KlOrderConfirmPkg pkg:packageList) {
                     // step 3 考拉下单支付
                     KlOrderPayResp klOrderPayResp = klApiService.bookpayorder(po, pkg);
@@ -240,8 +250,9 @@ public class SyncOrderServiceImpl implements SyncOrderService {
 
                     if(KlBaseResp.isSuccecd(klOrderPayResp)){
                         // 支付成功删除 orderErroPo
-                        if (null == orderErroPo && orderErroPo.getOrderId() != null){
+                        if (null != orderErroPo && orderErroPo.getOrderId() != null){
                             this.delOrderErrorTryCatch(po.getCode());
+                            orderErroPo = null;
                         }
                         //orderPo.setKlOrderPay(true);
                         //orderPo.setKlOrderId(klOrderPayResp.getGorder().getId());
@@ -262,23 +273,31 @@ public class SyncOrderServiceImpl implements SyncOrderService {
                             orderErroPo.setThirdPartyId(po.getPlatform_code());
                             orderErroPo.setCreateTime(DateUtil.stringToDate(po.getCreate_date(), DateUtil.dateTimeFormat));
                         }
-                        orderErroPo.setKlPayError("考拉支付失败-"+klOrderPayResp.getRecMeg()+" klRecCode:"+orderConformResp.getRecCode()+"--"+orderConformResp.getSubCode());
+                        orderErroPo.setKlPayError("考拉支付失败-"+klOrderPayResp.getRecMeg()+" klRecCode:"+klOrderPayResp.getRecCode()+"--"+klOrderPayResp.getSubCode());
                     }
                     // step 4 发货单同步状态批量修改接口
-                    GyBaseResp gyBaseResp = gyOrderUtilService.updateDeliveryStatus(po.getCode(), gySyncStatus);
-                    if(!GyBaseResp.isSuccecd(gyBaseResp)){
-                        if (null == orderErroPo){
-                            orderErroPo = new OrderErrorPo();
-                            orderErroPo.setOrderId(po.getCode());
-                            orderErroPo.setThirdPartyId(po.getPlatform_code());
-                            orderErroPo.setCreateTime(DateUtil.stringToDate(po.getCreate_date(), DateUtil.dateTimeFormat));
+                    // 支付失败同步失败，
+                    if(po.getSync_status() == -1 && klorderPay == -1){
+                        // no need
+                        gySyncStatus = -1;
+                    }else{
+                        GyBaseResp gyupdateDeliveryStatusResp = gyOrderUtilService.updateDeliveryStatus(po.getCode(), gySyncStatus);
+                        if(!GyBaseResp.isSuccecd(gyupdateDeliveryStatusResp)){
+                            if (null == orderErroPo){
+                                orderErroPo = new OrderErrorPo();
+                                orderErroPo.setOrderId(po.getCode());
+                                orderErroPo.setThirdPartyId(po.getPlatform_code());
+                                orderErroPo.setCreateTime(DateUtil.stringToDate(po.getCreate_date(), DateUtil.dateTimeFormat));
+                            }
+                            orderErroPo.setGyPrintExpressError("管易同步订单状态失败-"+gyupdateDeliveryStatusResp.getErrorDesc() + ". subError::" +gyupdateDeliveryStatusResp.getSubErrorDesc());
                         }
-                        orderErroPo.setGyPrintExpressError("管易同步打单失败-"+gyDeliveryUpdateResp.getErrorDesc() + ". subError::" +gyDeliveryUpdateResp.getSubErrorDesc());
+                        gySyncStatus = GyBaseResp.isSuccecd(gyupdateDeliveryStatusResp) ? 1 : -1;
+                        log.info("gyOrderSync round-item:{}-{} stage4 gy U syncStatus:{}...",round, i, GyBaseResp.isSuccecd(gyupdateDeliveryStatusResp));
                     }
-                    log.info("gyOrderSync round-item:{}-{} stage4 gy U syncStatus:{}...",round, i, GyBaseResp.isSuccecd(gyBaseResp));
+
                     //orderPo.setUpdateTime(new Date());
                     //orderPo.setGySyncStatus(GyBaseResp.isSuccecd(gyBaseResp) ? 1 : -1);
-                    gySyncStatus = GyBaseResp.isSuccecd(gyBaseResp) ? 1 : -1;
+
                     // this.saveOrderPoTryCatch(orderPo); // loacal 3.保存订单-下单支付结果
                 }
             }
@@ -405,8 +424,9 @@ public class SyncOrderServiceImpl implements SyncOrderService {
                                 + ". code::" +po.getCode()+ ". companyName::" +klOrderStatusResult.getDeliverName()+ ". no::" +klOrderStatusResult.getDeliverNo());
                     } else {
                         // 物流成功删除 orderErroPo
-                        if (null == orderErroPo && orderErroPo.getOrderId() != null){
+                        if (null != orderErroPo && orderErroPo.getOrderId() != null){
                             this.delOrderErrorTryCatch(po.getCode());
+                            orderErroPo = null;
                         }
                         if (null != orderPo && orderPo.getGyEpressStatus() != 1){
                             orderPo.setGyEpressStatus(1);
@@ -480,8 +500,9 @@ public class SyncOrderServiceImpl implements SyncOrderService {
                 if (null != orderPo) {
                     if (KlBaseResp.isSuccecd(rs)) {
                         // 取消成功删除 orderErroPo
-                        if (null == orderErroPo && orderErroPo.getOrderId() != null){
+                        if (null != orderErroPo && orderErroPo.getOrderId() != null){
                             this.delOrderErrorTryCatch(po.getCode());
+                            orderErroPo = null;
                         }
                         orderPo.setKlCancelStatus(1);
                         orderPo.setKlOrderStatus(8);
