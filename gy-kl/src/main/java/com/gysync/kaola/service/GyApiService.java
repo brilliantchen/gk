@@ -42,4 +42,8 @@ public interface GyApiService {
     //50	盘点单新增并审核（gy.erp.stock.count.add）
     public GyupdateStockResp updateStock(Map<String, Object> map);
 
+    public String getTradeOrders (Map<String, Object> map);
+
+    public String getHistoryTradeOrders(Map<String, Object> map);
+
 }

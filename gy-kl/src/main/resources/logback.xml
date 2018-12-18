@@ -3,11 +3,11 @@
   <property name="log.dir" value="/gykl/logs"/>
   <property name="projectname" value="gykl"/>
 
-  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+  <!--<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
       <pattern>%d [%thread] %-5p [%c] [%F:%L] - %msg%n</pattern>
     </encoder>
-  </appender>
+  </appender>-->
 
   <appender name="OperationRollingFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <file>${log.dir}/${projectname}.log</file>
@@ -30,7 +30,7 @@
 
 
   <root level="info">
-    <appender-ref ref="STDOUT"/>
+    <!--<appender-ref ref="STDOUT"/>-->
     <appender-ref ref="OperationRollingFileASYNC"/>
   </root>
 </configuration>

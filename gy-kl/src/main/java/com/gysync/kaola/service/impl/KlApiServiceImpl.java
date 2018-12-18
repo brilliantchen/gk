@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.gysync.kaola.comm.ConfigInfo;
 import com.gysync.kaola.comm.util.APIUtil;
+import com.gysync.kaola.comm.util.KlGyAddressUtil;
 import com.gysync.kaola.comm.util.RestHttpUtil;
 import com.gysync.kaola.entity.gy.resp.GyDeliverysDetail;
 import com.gysync.kaola.entity.gy.resp.GyDeliverysPo;
@@ -26,6 +27,8 @@ public class KlApiServiceImpl implements KlApiService {
 
     @Autowired
     private RestHttpUtil restHttpUtil;
+    @Autowired
+    KlGyAddressUtil klGyAddressUtil;
 
     String v1 = ConfigInfo.ka_v1;
     // 渠道商ID
@@ -80,8 +83,8 @@ public class KlApiServiceImpl implements KlApiService {
             // 构造商品信息
             Map<String, Object> orderItemMap = new HashMap<String, Object>();
             for (GyDeliverysDetail po : gyDeliverysPo.getDetails()) {
-                orderItemMap.put("goodsId", po.getItem_code());
-                orderItemMap.put("skuId", po.getSku_code());
+                orderItemMap.put("goodsId", po.getItem_code().trim());
+                orderItemMap.put("skuId", po.getSku_code().trim());
                 orderItemMap.put("buyAmount", po.getQty());
                 orderItemMap.put("channelSalePrice", new BigDecimal(po.getAmount()));
                 orderItemList.add(orderItemMap);
@@ -97,7 +100,7 @@ public class KlApiServiceImpl implements KlApiService {
             userInfoMap.put("email", "");
             userInfoMap.put("provinceName", areas[0]);
             userInfoMap.put("cityName", areas[1]);
-            userInfoMap.put("districtName", areas[2]);
+            userInfoMap.put("districtName", klGyAddressUtil.districtName(areas[1], areas[2]));
             userInfoMap.put("address", gyDeliverysPo.getReceiver_address());
             userInfoMap.put("identityId", gyDeliverysPo.getVip_id_card()); //一般贸易商品可不传
             JSONObject userInfoJsonObject = new JSONObject();
@@ -160,7 +163,7 @@ public class KlApiServiceImpl implements KlApiService {
             userInfoMap.put("email", "");
             userInfoMap.put("provinceName", areas[0]);
             userInfoMap.put("cityName", areas[1]);
-            userInfoMap.put("districtName", areas[2]);
+            userInfoMap.put("districtName", klGyAddressUtil.districtName(areas[1], areas[2]));
             userInfoMap.put("address", gyDeliverysPo.getReceiver_address());
             userInfoMap.put("identityId", gyDeliverysPo.getVip_id_card()); //一般贸易商品可不传
             parameterMap.put("thirdPartOrderId", gyDeliverysPo.getCode()); //  使用管易发货单号code

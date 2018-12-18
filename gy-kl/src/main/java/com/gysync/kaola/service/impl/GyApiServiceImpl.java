@@ -214,5 +214,58 @@ public class GyApiServiceImpl implements GyApiService {
         return JSON.parseObject(rs, GyupdateStockResp.class);
     }
 
+    @Override
+    public String getTradeOrders(Map<String, Object> map) {
+        map.put("appkey", ConfigInfo.APPKEY);
+        map.put("sessionkey", ConfigInfo.SESSIONKEY);
+        map.put("method", "gy.erp.trade.get");
+        map.put("page_no", "1");
+        map.put("page_size", "10");
+        // map.put("start_date", "2017-03-13 15:30:01");
+        // map.put("end_date", "2017-03-13 23:59:59");
+        // map.put("date_type", 3);
+        // map.put("order_state", "0");
+        // map.put("warehouse_code", "ding1");
+        // map.put("shop_code", "005");
+        // map.put("vip_name", "王媛媛1");
+        // map.put("platform_code", "AOC2016070280419");
+        // map.put("receiver_mobile", "13600100100");
+        // map.put("code", "SO92021687175");
+        // map.put("abc","abc——+——！~");
+        if(!StringUtils.isEmpty(map.get("sign"))){
+            map.remove("sign");
+        }
+        String sign = GuanYiUtil.sign(JSON.toJSONString(map), ConfigInfo.SECRET);
+        map.put("sign", sign);
+        String rs = restHttpUtil.gyPost(JSON.toJSONString(map));
+        return rs;
+    }
+
+    @Override
+    public String getHistoryTradeOrders(Map<String, Object> map) {
+        map.put("appkey", ConfigInfo.APPKEY);
+        map.put("sessionkey", ConfigInfo.SESSIONKEY);
+        map.put("method", "gy.erp.trade.history.get");
+        map.put("page_no", "1");
+        map.put("page_size", "1");
+        // map.put("start_date", "2016-08-21 09:00:01");
+        // map.put("end_date", "2016-08-25 23:59:59");
+        // map.put("date_type", 3);
+        // map.put("order_state", "0");
+        // map.put("warehouse_code", "ding1");
+        // map.put("shop_code", "005");
+        // map.put("vip_name", "王媛媛1");
+        // map.put("platform_code", "1465876047789");
+        // map.put("receiver_mobile", "13600100100");
+        // map.put("code", "SO88887306545");
+        if(!StringUtils.isEmpty(map.get("sign"))){
+            map.remove("sign");
+        }
+        String sign = GuanYiUtil.sign(JSON.toJSONString(map), ConfigInfo.SECRET);
+        map.put("sign", sign);
+        String rs = restHttpUtil.gyPost(JSON.toJSONString(map));
+        return rs;
+    }
+
 
 }
